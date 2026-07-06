@@ -116,3 +116,8 @@ export async function getImportJob(id) {
   const response = await request(`/api/importar/jobs/${id}`);
   return response.json();
 }
+
+export async function getImportJobs() {
+  const response = await request("/api/importar/jobs");
+  return response.json();
+}

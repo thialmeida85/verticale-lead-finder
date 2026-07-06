@@ -35,6 +35,16 @@ def get_import_job(db: Session, job_id: UUID) -> models.ImportJob | None:
     return db.get(models.ImportJob, job_id)
 
 
+def list_import_jobs(db: Session, limit: int = 10) -> list[models.ImportJob]:
+    stmt = (
+        select(models.ImportJob)
+        .where(models.ImportJob.tipo == "pdf")
+        .order_by(models.ImportJob.created_at.desc())
+        .limit(limit)
+    )
+    return list(db.scalars(stmt))
+
+
 async def process_pdf_import_job(job_id: UUID, cnpjs: list[str]):
     settings = get_settings()
     with SessionLocal() as db:

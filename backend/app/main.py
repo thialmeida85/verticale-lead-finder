@@ -21,7 +21,7 @@ from .lead_service import (
     save_lead,
     update_lead,
 )
-from .pdf_import_service import create_pdf_import_job, get_import_job, process_pdf_import_job
+from .pdf_import_service import create_pdf_import_job, get_import_job, list_import_jobs, process_pdf_import_job
 
 
 settings = get_settings()
@@ -101,6 +101,11 @@ def api_import_job(job_id: UUID, db: Session = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Importação não encontrada.")
     return job
+
+
+@app.get("/api/importar/jobs", response_model=list[schemas.ImportJobRead])
+def api_import_jobs(db: Session = Depends(get_db)):
+    return list_import_jobs(db)
 
 
 @app.get("/api/leads", response_model=list[schemas.LeadRead])

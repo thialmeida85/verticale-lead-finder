@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getImportJob, importCsv, importPdf } from "../api";
+import { getImportJob, getImportJobs, importCsv, importPdf } from "../api";
 
 const finishedStatuses = new Set(["concluido", "pausado_limite_api", "erro"]);
 
@@ -10,20 +10,42 @@ export default function Importar() {
   const [status, setStatus] = useState("");
   const [csvResult, setCsvResult] = useState(null);
   const [pdfJob, setPdfJob] = useState(null);
+  const [pdfJobs, setPdfJobs] = useState([]);
 
   useEffect(() => {
-    if (!pdfJob?.id || finishedStatuses.has(pdfJob.status)) return undefined;
+    loadPdfJobs();
+  }, []);
+
+  useEffect(() => {
+    const hasActiveJob = pdfJobs.some((job) => !finishedStatuses.has(job.status));
+    const selectedIsActive = pdfJob?.id && !finishedStatuses.has(pdfJob.status);
+    if (!hasActiveJob && !selectedIsActive) return undefined;
 
     const timer = window.setInterval(async () => {
       try {
-        setPdfJob(await getImportJob(pdfJob.id));
+        const jobs = await getImportJobs();
+        setPdfJobs(jobs);
+        if (pdfJob?.id) {
+          const selected = jobs.find((job) => job.id === pdfJob.id) || await getImportJob(pdfJob.id);
+          setPdfJob(selected);
+        }
       } catch (error) {
         setStatus(error.message);
       }
     }, 2500);
 
     return () => window.clearInterval(timer);
-  }, [pdfJob]);
+  }, [pdfJob, pdfJobs]);
+
+  async function loadPdfJobs() {
+    try {
+      const jobs = await getImportJobs();
+      setPdfJobs(jobs);
+      if (!pdfJob && jobs.length) setPdfJob(jobs[0]);
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
 
   async function handleCsvSubmit(event) {
     event.preventDefault();
@@ -55,6 +77,7 @@ export default function Importar() {
     try {
       const data = await importPdf(pdfFile);
       setPdfJob(data);
+      await loadPdfJobs();
       setStatus("Importação PDF iniciada.");
     } catch (error) {
       setStatus(error.message);
@@ -118,6 +141,43 @@ export default function Importar() {
           errors={pdfJob.erros || []}
         />
       )}
+
+      {!!pdfJobs.length && (
+        <div className="panel">
+          <h2>Importações de PDF</h2>
+          <div className="table-wrap import-errors">
+            <table>
+              <thead>
+                <tr>
+                  <th>Arquivo</th>
+                  <th>Status</th>
+                  <th>Progresso</th>
+                  <th>Enriquecidos</th>
+                  <th>Erros</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pdfJobs.map((job) => (
+                  <tr key={job.id}>
+                    <td>{job.arquivo || "-"}</td>
+                    <td>{labelStatus(job.status)}</td>
+                    <td>
+                      <ProgressBar value={job.processados} total={job.total} />
+                      <span>{job.processados} de {job.total}</span>
+                    </td>
+                    <td>{job.enriquecidos}</td>
+                    <td>{job.erros?.length || 0}</td>
+                    <td>
+                      <button type="button" onClick={() => setPdfJob(job)}>Ver andamento</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -160,6 +220,15 @@ function Metric({ label, value }) {
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function ProgressBar({ value, total }) {
+  const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div className="progress-bar" aria-label={`Progresso ${percentage}%`}>
+      <span style={{ width: `${percentage}%` }} />
     </div>
   );
 }

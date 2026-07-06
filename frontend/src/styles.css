@@ -285,6 +285,22 @@ td strong {
   margin-top: 16px;
 }
 
+.progress-bar {
+  background: #e8eef3;
+  border-radius: 999px;
+  height: 8px;
+  margin-bottom: 6px;
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.progress-bar span {
+  background: #12695f;
+  display: block;
+  height: 100%;
+  transition: width 180ms ease;
+}
+
 .score {
   border-radius: 999px;
   display: inline-flex;
