@@ -93,3 +93,14 @@ export async function importCsv(file) {
   });
   return response.json();
 }
+
+export async function importPdf(file) {
+  const body = new FormData();
+  body.append("file", file);
+
+  const response = await request("/api/importar/pdf", {
+    method: "POST",
+    body,
+  });
+  return response.json();
+}

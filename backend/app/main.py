@@ -10,6 +10,7 @@ from .cnpj_api import CnpjApiError
 from .config import get_settings
 from .database import get_db
 from .export_service import export_leads
+from .pdf_service import process_pdf_and_create_pre_leads
 from .import_service import import_leads_csv
 from .lead_service import (
     consultar_empresas,
@@ -64,6 +65,16 @@ async def api_import_csv(file: UploadFile = File(...), db: Session = Depends(get
         raise HTTPException(status_code=400, detail="Envie um arquivo CSV.")
     content = await file.read()
     return import_leads_csv(db, content, file.filename)
+
+
+@app.post("/api/importar/pdf", response_model=schemas.ImportResult)
+async def api_import_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Envie um arquivo PDF.")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Arquivo PDF vazio ou corrompido.")
+    return process_pdf_and_create_pre_leads(db, content)
 
 
 @app.get("/api/leads", response_model=list[schemas.LeadRead])

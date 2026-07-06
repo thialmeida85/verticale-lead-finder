@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { getLead, updateLead } from "../api";
+import { getLead, updateLead, consultarCnpj } from "../api";
 import ScoreBadge from "../components/ScoreBadge";
 
 const detailFields = [
@@ -70,6 +70,22 @@ export default function LeadDetalhes() {
     }
   }
 
+  async function handleEnrich() {
+    setStatus("Buscando dados completos do CNPJ...");
+    try {
+      // 1. Consultar a API externa
+      const [enrichedData] = await consultarCnpj({ cnpj: lead.cnpj });
+      if (!enrichedData) {
+        throw new Error("Não foi possível encontrar dados para este CNPJ.");
+      }
+      // 2. Atualizar o lead com os novos dados e mudar o status
+      await updateLead(id, { ...enrichedData, status_lead: "novo" });
+      await load(); // Recarrega os dados na tela
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
   if (status && !lead) return <p className="status">{status}</p>;
 
   return (
@@ -82,8 +98,16 @@ export default function LeadDetalhes() {
         </div>
         <ScoreBadge score={lead.score} />
       </header>
+
+      {lead.status_lead === "importado" && (
+        <div className="panel enrich-panel">
+          <p>Este é um lead importado. Clique para buscar os dados completos.</p>
+          <button type="button" onClick={handleEnrich}>Enriquecer Dados</button>
+        </div>
+      )}
       <div className="panel edit-panel">
         <select value={form.status_lead} onChange={(event) => setForm({ ...form, status_lead: event.target.value })}>
+          {lead.status_lead === "importado" && <option value="importado">Importado</option>}
           <option value="novo">Novo</option>
           <option value="abordado">Abordado</option>
           <option value="qualificado">Qualificado</option>
