@@ -107,3 +107,11 @@ class DashboardStats(BaseModel):
     leads_por_status: dict[str, int]
     leads_score_alto: int
     leads_exportados: int
+
+
+class ImportResult(BaseModel):
+    arquivo: str | None = None
+    importados: int
+    atualizados: int
+    ignorados: int
+    erros: list[dict]

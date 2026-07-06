@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -10,6 +10,7 @@ from .cnpj_api import CnpjApiError
 from .config import get_settings
 from .database import get_db
 from .export_service import export_leads
+from .import_service import import_leads_csv
 from .lead_service import (
     consultar_empresas,
     dashboard_stats,
@@ -55,6 +56,14 @@ async def api_consultar_cnpj(request: schemas.CnpjConsultaRequest, db: Session =
 @app.post("/api/leads", response_model=schemas.LeadRead)
 def api_save_lead(request: schemas.LeadCreate, db: Session = Depends(get_db)):
     return save_lead(db, request)
+
+
+@app.post("/api/importar/csv", response_model=schemas.ImportResult)
+async def api_import_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not file.filename.lower().endswith((".csv", ".emprescsv")):
+        raise HTTPException(status_code=400, detail="Envie um arquivo CSV.")
+    content = await file.read()
+    return import_leads_csv(db, content, file.filename)
 
 
 @app.get("/api/leads", response_model=list[schemas.LeadRead])

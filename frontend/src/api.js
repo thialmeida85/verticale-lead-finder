@@ -3,7 +3,8 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
 
 async function request(path, options = {}) {
   const headers = { ...(options.headers || {}) };
-  if (options.body && !headers["Content-Type"]) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body && !isFormData && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -80,4 +81,15 @@ export async function exportLeads(format, payload) {
   const disposition = response.headers.get("content-disposition") || "";
   const match = disposition.match(/filename="?([^"]+)"?/);
   return { blob, filename: match?.[1] || `leads.${format}` };
+}
+
+export async function importCsv(file) {
+  const body = new FormData();
+  body.append("file", file);
+
+  const response = await request("/api/importar/csv", {
+    method: "POST",
+    body,
+  });
+  return response.json();
 }

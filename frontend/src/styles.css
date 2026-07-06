@@ -178,7 +178,8 @@ td span {
 .search-form,
 .export-panel,
 .filter-form,
-.edit-panel {
+.edit-panel,
+.import-panel {
   align-items: center;
   display: flex;
   gap: 12px;
@@ -194,7 +195,8 @@ td span {
 }
 
 .filter-form,
-.edit-panel {
+.edit-panel,
+.import-panel {
   flex-wrap: wrap;
 }
 
@@ -261,6 +263,10 @@ td strong {
 .row-actions select,
 .row-actions .button-link {
   min-height: 34px;
+}
+
+.import-errors {
+  margin-top: 16px;
 }
 
 .score {
