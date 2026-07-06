@@ -66,3 +66,21 @@ class ConsultaApi(Base):
     status: Mapped[str] = mapped_column(String(60), index=True)
     mensagem_erro: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ImportJob(Base):
+    __tablename__ = "import_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    tipo: Mapped[str] = mapped_column(String(40), index=True)
+    arquivo: Mapped[str] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(40), default="pendente", index=True)
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    processados: Mapped[int] = mapped_column(Integer, default=0)
+    importados: Mapped[int] = mapped_column(Integer, default=0)
+    atualizados: Mapped[int] = mapped_column(Integer, default=0)
+    enriquecidos: Mapped[int] = mapped_column(Integer, default=0)
+    ignorados: Mapped[int] = mapped_column(Integer, default=0)
+    erros: Mapped[list] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)

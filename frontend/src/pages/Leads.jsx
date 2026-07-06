@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { deleteLead, getLeads, updateLead } from "../api";
+import { deleteLead, enrichLead, getLeads, updateLead } from "../api";
 import Filters from "../components/Filters";
 import LeadTable from "../components/LeadTable";
 
@@ -34,6 +34,16 @@ export default function Leads() {
     await load();
   }
 
+  async function handleEnrich(id) {
+    setStatus("Enriquecendo contato...");
+    try {
+      await enrichLead(id);
+      await load();
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
   return (
     <section className="page">
       <header className="page-header">
@@ -41,7 +51,7 @@ export default function Leads() {
         <p>Filtre, qualifique, bloqueie abordagem e remova registros.</p>
       </header>
       <Filters filters={filters} onChange={setFilters} saved />
-      {status ? <p className="status">{status}</p> : <LeadTable leads={leads} onUpdate={handleUpdate} onDelete={handleDelete} />}
+      {status ? <p className="status">{status}</p> : <LeadTable leads={leads} onUpdate={handleUpdate} onDelete={handleDelete} onEnrich={handleEnrich} />}
     </section>
   );
 }

@@ -6,7 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .cnpj_api import CnpjApiError, consultar_cnpj_api
+from .cnpj_api import CnpjApiError, consultar_cnpj_api, fetch_company
 from .utils import normalize_cnpj, normalize_phone
 
 
@@ -85,11 +85,7 @@ async def consultar_empresas(db: Session, request: schemas.CnpjConsultaRequest) 
 
 
 def save_lead(db: Session, payload: schemas.LeadCreate) -> models.Lead:
-    # Para pré-leads importados, não normalizamos nem calculamos score ainda
-    if payload.status_lead == "importado":
-        data = payload.model_dump()
-    else:
-        data = normalize_lead_payload(payload.model_dump())
+    data = normalize_lead_payload(payload.model_dump())
     existing = db.scalar(select(models.Lead).where(models.Lead.cnpj == data["cnpj"]))
     if existing:
         for key, value in data.items():
@@ -135,6 +131,14 @@ def apply_lead_filters(stmt, filters: schemas.LeadFilter):
         stmt = stmt.where(models.Lead.possivel_whatsapp == filters.possivel_whatsapp)
     if filters.nao_contatar is not None:
         stmt = stmt.where(models.Lead.nao_contatar == filters.nao_contatar)
+    if filters.apenas_cnpj:
+        stmt = stmt.where(
+            or_(
+                models.Lead.status_lead == "importado",
+                models.Lead.fonte == "pdf_import",
+                models.Lead.razao_social.ilike("CNPJ %"),
+            )
+        )
     if filters.data_cadastro:
         stmt = stmt.where(models.Lead.created_at >= filters.data_cadastro)
     return stmt
@@ -157,6 +161,14 @@ def update_lead(db: Session, lead_id: UUID, payload: schemas.LeadUpdate) -> mode
     db.commit()
     db.refresh(lead)
     return lead
+
+
+async def enrich_lead(db: Session, lead_id: UUID) -> models.Lead | None:
+    lead = get_lead(db, lead_id)
+    if not lead:
+        return None
+    company = await fetch_company(lead.cnpj)
+    return save_lead(db, schemas.LeadCreate(**company, status_lead="novo"))
 
 
 def delete_lead(db: Session, lead_id: UUID) -> bool:

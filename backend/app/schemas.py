@@ -89,6 +89,7 @@ class LeadFilter(BaseModel):
     tem_email: bool | None = None
     possivel_whatsapp: bool | None = None
     nao_contatar: bool | None = None
+    apenas_cnpj: bool | None = None
     data_cadastro: str | None = None
 
 
@@ -115,3 +116,22 @@ class ImportResult(BaseModel):
     atualizados: int
     ignorados: int
     erros: list[dict]
+
+
+class ImportJobRead(BaseModel):
+    id: UUID
+    tipo: str
+    arquivo: str | None = None
+    status: str
+    total: int
+    processados: int
+    importados: int
+    atualizados: int
+    enriquecidos: int
+    ignorados: int
+    erros: list[dict] | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

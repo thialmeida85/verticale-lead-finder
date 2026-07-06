@@ -12,6 +12,22 @@ def normalize_cnpj(value: str | None) -> str:
     return digits
 
 
+def is_valid_cnpj(value: str | None) -> bool:
+    digits = only_digits(value)
+    if len(digits) != 14 or digits == digits[0] * 14:
+        return False
+
+    def check_digit(numbers: str) -> str:
+        weights = range(len(numbers) + 1, 1, -1)
+        total = sum(int(number) * weight for number, weight in zip(numbers, weights))
+        rest = total % 11
+        return "0" if rest < 2 else str(11 - rest)
+
+    first = check_digit(digits[:12])
+    second = check_digit(digits[:12] + first)
+    return digits[-2:] == first + second
+
+
 def normalize_phone(value: str | None) -> str | None:
     digits = only_digits(value)
     if not digits:

@@ -136,6 +136,10 @@ td span {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.import-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 .dashboard-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -198,6 +202,18 @@ td span {
 .edit-panel,
 .import-panel {
   flex-wrap: wrap;
+}
+
+.import-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.import-card {
+  align-content: start;
+  display: grid;
+  gap: 14px;
 }
 
 .filters input {
@@ -327,6 +343,7 @@ dd {
   .sidebar nav,
   .metrics-grid,
   .dashboard-grid,
+  .import-grid,
   .details-grid {
     grid-template-columns: 1fr;
   }

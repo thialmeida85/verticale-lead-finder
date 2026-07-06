@@ -68,6 +68,13 @@ export async function updateLead(id, payload) {
   return response.json();
 }
 
+export async function enrichLead(id) {
+  const response = await request(`/api/leads/${id}/enriquecer`, {
+    method: "POST",
+  });
+  return response.json();
+}
+
 export async function deleteLead(id) {
   await request(`/api/leads/${id}`, { method: "DELETE" });
 }
@@ -105,13 +112,7 @@ export async function importPdf(file) {
   return response.json();
 }
 
-export async function importPdf(file) {
-  const body = new FormData();
-  body.append("file", file);
-
-  const response = await request("/api/importar/pdf", {
-    method: "POST",
-    body,
-  });
+export async function getImportJob(id) {
+  const response = await request(`/api/importar/jobs/${id}`);
   return response.json();
 }

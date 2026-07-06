@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     cnpj_api_base_url: str = "https://publica.cnpj.ws/cnpj"
     cnpj_api_key: str | None = None
+    cnpj_enrich_delay_seconds: int = 20
     exports_dir: str = "../exports"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

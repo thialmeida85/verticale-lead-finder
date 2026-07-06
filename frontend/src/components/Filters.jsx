@@ -15,7 +15,7 @@ export default function Filters({ filters, onChange, saved = false }) {
         <>
           <select value={filters.status_lead || ""} onChange={(event) => setField("status_lead", event.target.value)}>
             <option value="">Status</option>
-            <option value="importado">Importado</option>
+            <option value="importado">Importado</option> {/* Adicionado */}
             <option value="novo">Novo</option>
             <option value="abordado">Abordado</option>
             <option value="qualificado">Qualificado</option>
@@ -24,6 +24,7 @@ export default function Filters({ filters, onChange, saved = false }) {
           <Toggle label="Tem telefone" checked={filters.tem_telefone === "true"} onChange={(checked) => setField("tem_telefone", checked ? "true" : "")} />
           <Toggle label="Tem e-mail" checked={filters.tem_email === "true"} onChange={(checked) => setField("tem_email", checked ? "true" : "")} />
           <Toggle label="Possível WhatsApp" checked={filters.possivel_whatsapp === "true"} onChange={(checked) => setField("possivel_whatsapp", checked ? "true" : "")} />
+          <Toggle label="Apenas CNPJ" checked={filters.apenas_cnpj === "true"} onChange={(checked) => setField("apenas_cnpj", checked ? "true" : "")} />
           <Toggle label="Não contatar" checked={filters.nao_contatar === "true"} onChange={(checked) => setField("nao_contatar", checked ? "true" : "")} />
           <input type="date" value={filters.data_cadastro || ""} onChange={(event) => setField("data_cadastro", event.target.value)} />
         </>

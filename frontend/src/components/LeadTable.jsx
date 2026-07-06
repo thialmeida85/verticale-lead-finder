@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import ScoreBadge from "./ScoreBadge";
 
-export default function LeadTable({ leads, onSave, onUpdate, onDelete, mode = "saved" }) {
+export default function LeadTable({ leads, onSave, onUpdate, onDelete, onEnrich, mode = "saved" }) {
   if (!leads.length) return <p className="status">Nenhum lead encontrado.</p>;
 
   return (
@@ -58,6 +58,9 @@ export default function LeadTable({ leads, onSave, onUpdate, onDelete, mode = "s
                       <button type="button" onClick={() => onUpdate(lead.id, { nao_contatar: !lead.nao_contatar })}>
                         {lead.nao_contatar ? "Liberar" : "Não contatar"}
                       </button>
+                      {(lead.status_lead === "importado" || lead.fonte === "pdf_import") && (
+                        <button type="button" onClick={() => onEnrich(lead.id)}>Enriquecer contato</button>
+                      )}
                       <button type="button" className="danger" onClick={() => onDelete(lead.id)}>Excluir</button>
                     </>
                   )}
