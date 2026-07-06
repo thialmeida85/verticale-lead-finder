@@ -10,7 +10,6 @@ from .cnpj_api import CnpjApiError
 from .config import get_settings
 from .database import get_db
 from .export_service import export_leads
-from .pdf_service import process_pdf_and_create_pre_leads  # noqa
 from .import_service import import_leads_csv
 from .lead_service import (
     consultar_empresas,
@@ -48,10 +47,21 @@ def root():
     return {"app": settings.app_name, "status": "ok", "docs": "/docs", "health": "/health"}
 
 
+@app.head("/")
+def root_head():
+    return Response(status_code=200)
+
+
 @app.get("/health")
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.head("/health")
+@app.head("/api/health")
+def health_head():
+    return Response(status_code=200)
 
 
 @app.post("/api/cnpj/consultar", response_model=list[schemas.LeadCreate])
@@ -91,26 +101,6 @@ def api_import_job(job_id: UUID, db: Session = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Importação não encontrada.")
     return job
-
-
-@app.post("/api/importar/pdf", response_model=schemas.ImportResult)
-async def api_import_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Envie um arquivo PDF.")
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Arquivo PDF vazio ou corrompido.")
-    return process_pdf_and_create_pre_leads(db, content)
-
-
-@app.post("/api/importar/pdf", response_model=schemas.ImportResult)
-async def api_import_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Envie um arquivo PDF.")
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Arquivo PDF vazio ou corrompido.")
-    return process_pdf_and_create_pre_leads(db, content)
 
 
 @app.get("/api/leads", response_model=list[schemas.LeadRead])
