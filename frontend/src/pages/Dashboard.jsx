@@ -4,10 +4,30 @@ import { getDashboard } from "../api";
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    getDashboard().then(setStats).catch(console.error);
+    getDashboard()
+      .then((data) => {
+        setStats(data);
+        setError("");
+      })
+      .catch((err) => setError(err.message));
   }, []);
+
+  if (error) {
+    return (
+      <section className="page">
+        <header className="page-header">
+          <h1>Dashboard</h1>
+          <p>Não foi possível carregar os indicadores.</p>
+        </header>
+        <div className="panel">
+          <p className="status">{error}</p>
+        </div>
+      </section>
+    );
+  }
 
   if (!stats) return <p className="status">Carregando indicadores...</p>;
 
