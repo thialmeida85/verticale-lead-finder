@@ -1,0 +1,77 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+async function request(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "Erro ao comunicar com o servidor.");
+  }
+
+  return response;
+}
+
+function paramsFrom(filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+  });
+  return params.toString();
+}
+
+export async function getDashboard() {
+  const response = await request("/api/dashboard");
+  return response.json();
+}
+
+export async function consultarCnpj(payload) {
+  const response = await request("/api/cnpj/consultar", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+}
+
+export async function saveLead(payload) {
+  const response = await request("/api/leads", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+}
+
+export async function getLeads(filters = {}) {
+  const response = await request(`/api/leads?${paramsFrom(filters)}`);
+  return response.json();
+}
+
+export async function getLead(id) {
+  const response = await request(`/api/leads/${id}`);
+  return response.json();
+}
+
+export async function updateLead(id, payload) {
+  const response = await request(`/api/leads/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+}
+
+export async function deleteLead(id) {
+  await request(`/api/leads/${id}`, { method: "DELETE" });
+}
+
+export async function exportLeads(format, payload) {
+  const response = await request(`/api/exportar/${format}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  return { blob, filename: match?.[1] || `leads.${format}` };
+}
