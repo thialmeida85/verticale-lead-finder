@@ -15,6 +15,7 @@ export default function Filters({ filters, onChange, saved = false }) {
         <>
           <select value={filters.status_lead || ""} onChange={(event) => setField("status_lead", event.target.value)}>
             <option value="">Status</option>
+            <option value="importado">Importado</option>
             <option value="novo">Novo</option>
             <option value="abordado">Abordado</option>
             <option value="qualificado">Qualificado</option>

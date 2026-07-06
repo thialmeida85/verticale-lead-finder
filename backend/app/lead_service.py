@@ -85,7 +85,11 @@ async def consultar_empresas(db: Session, request: schemas.CnpjConsultaRequest) 
 
 
 def save_lead(db: Session, payload: schemas.LeadCreate) -> models.Lead:
-    data = normalize_lead_payload(payload.model_dump())
+    # Para pré-leads importados, não normalizamos nem calculamos score ainda
+    if payload.status_lead == "importado":
+        data = payload.model_dump()
+    else:
+        data = normalize_lead_payload(payload.model_dump())
     existing = db.scalar(select(models.Lead).where(models.Lead.cnpj == data["cnpj"]))
     if existing:
         for key, value in data.items():

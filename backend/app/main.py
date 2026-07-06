@@ -10,7 +10,7 @@ from .cnpj_api import CnpjApiError
 from .config import get_settings
 from .database import get_db
 from .export_service import export_leads
-from .pdf_service import process_pdf_and_create_pre_leads
+from .pdf_service import process_pdf_and_create_pre_leads  # noqa
 from .import_service import import_leads_csv
 from .lead_service import (
     consultar_empresas,
