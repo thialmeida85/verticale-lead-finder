@@ -26,10 +26,16 @@ app = FastAPI(title=settings.app_name)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
+    allow_origin_regex=r"https://.*\.onrender\.com",
+    allow_credentials=settings.cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def root():
+    return {"app": settings.app_name, "status": "ok", "docs": "/docs", "health": "/health"}
 
 
 @app.get("/health")
