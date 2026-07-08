@@ -171,6 +171,10 @@ td span {
   margin: 0 0 16px;
 }
 
+.compact-row h2 {
+  margin: 0;
+}
+
 .compact-list {
   display: grid;
   gap: 10px;

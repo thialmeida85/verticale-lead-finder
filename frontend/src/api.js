@@ -121,3 +121,10 @@ export async function getImportJobs() {
   const response = await request("/api/importar/jobs");
   return response.json();
 }
+
+export async function clearFinishedImportJobs() {
+  const response = await request("/api/importar/jobs/concluidas", {
+    method: "DELETE",
+  });
+  return response.json();
+}

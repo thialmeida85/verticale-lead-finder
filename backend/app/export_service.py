@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from .config import get_settings
 from .lead_service import list_leads
+from .utils import normalize_mobile_for_export
 
 
 DEFAULT_MESSAGE = (
@@ -66,7 +67,7 @@ def _filter_exportable(leads: list[models.Lead], request: schemas.ExportRequest)
 def _export_row(lead: models.Lead) -> dict:
     return {
         "Nome": lead.nome_fantasia or lead.razao_social,
-        "Telefone": lead.telefone_principal,
+        "Telefone": normalize_mobile_for_export(lead.telefone_principal),
         "Empresa": lead.razao_social,
         "CNPJ": lead.cnpj,
         "Segmento": lead.segmento,

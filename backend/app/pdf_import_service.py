@@ -4,7 +4,7 @@ import re
 from uuid import UUID
 
 from pypdf import PdfReader
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from . import models, schemas
@@ -15,15 +15,28 @@ from .lead_service import save_lead
 from .utils import is_valid_cnpj, only_digits
 
 
-CNPJ_PATTERN = re.compile(r"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b")
+CNPJ_PATTERN = re.compile(r"(?<!\d)(?:\d[\s./-]*){14}(?!\d)")
+FINISHED_STATUSES = {"concluido", "pausado_limite_api", "erro"}
+
+
 def create_pdf_import_job(db: Session, content: bytes, filename: str | None = None) -> tuple[models.ImportJob, list[str]]:
-    cnpjs = extract_cnpjs_from_pdf(content)
+    cnpjs, diagnostics = extract_cnpjs_from_pdf(content)
+    errors = []
+    status = "pendente"
+    if not cnpjs:
+        status = "erro"
+        if diagnostics["text_chars"] == 0:
+            message = "Nenhum texto foi encontrado no PDF. Ele pode estar escaneado como imagem."
+        else:
+            message = "Nenhum CNPJ válido foi encontrado no texto extraído do PDF."
+        errors.append({"item": "PDF", "erro": f"{message} Páginas: {diagnostics['pages']}. Caracteres lidos: {diagnostics['text_chars']}."})
+
     job = models.ImportJob(
         tipo="pdf",
         arquivo=filename,
-        status="pendente",
+        status=status,
         total=len(cnpjs),
-        erros=[],
+        erros=errors,
     )
     db.add(job)
     db.commit()
@@ -45,7 +58,29 @@ def list_import_jobs(db: Session, limit: int = 10) -> list[models.ImportJob]:
     return list(db.scalars(stmt))
 
 
+def clear_finished_import_jobs(db: Session) -> int:
+    result = db.execute(
+        delete(models.ImportJob).where(
+            models.ImportJob.tipo == "pdf",
+            models.ImportJob.status.in_(FINISHED_STATUSES),
+        )
+    )
+    db.commit()
+    return result.rowcount or 0
+
+
 async def process_pdf_import_job(job_id: UUID, cnpjs: list[str]):
+    if not cnpjs:
+        with SessionLocal() as db:
+            job = db.get(models.ImportJob, job_id)
+            if job:
+                job.status = "erro"
+                job.total = 0
+                if not job.erros:
+                    job.erros = [{"item": "PDF", "erro": "Nenhum CNPJ foi encontrado para processar."}]
+                db.commit()
+        return
+
     settings = get_settings()
     with SessionLocal() as db:
         job = db.get(models.ImportJob, job_id)
@@ -71,20 +106,22 @@ async def process_pdf_import_job(job_id: UUID, cnpjs: list[str]):
             db.commit()
 
 
-def extract_cnpjs_from_pdf(content: bytes) -> list[str]:
+def extract_cnpjs_from_pdf(content: bytes) -> tuple[list[str], dict[str, int]]:
     reader = PdfReader(io.BytesIO(content))
     cnpjs = []
     seen = set()
+    text_chars = 0
 
     for page in reader.pages:
         text = page.extract_text() or ""
+        text_chars += len(text)
         for match in CNPJ_PATTERN.findall(text):
             digits = only_digits(match)
             if is_valid_cnpj(digits) and digits not in seen:
                 seen.add(digits)
                 cnpjs.append(digits)
 
-    return cnpjs
+    return cnpjs, {"pages": len(reader.pages), "text_chars": text_chars}
 
 
 async def _process_one_cnpj(job_id: UUID, cnpj: str):

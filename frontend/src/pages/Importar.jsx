@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getImportJob, getImportJobs, importCsv, importPdf } from "../api";
+import { clearFinishedImportJobs, getImportJob, getImportJobs, importCsv, importPdf } from "../api";
 
 const finishedStatuses = new Set(["concluido", "pausado_limite_api", "erro"]);
 
@@ -11,6 +11,7 @@ export default function Importar() {
   const [csvResult, setCsvResult] = useState(null);
   const [pdfJob, setPdfJob] = useState(null);
   const [pdfJobs, setPdfJobs] = useState([]);
+  const hasFinishedJobs = pdfJobs.some((job) => finishedStatuses.has(job.status));
 
   useEffect(() => {
     loadPdfJobs();
@@ -37,11 +38,11 @@ export default function Importar() {
     return () => window.clearInterval(timer);
   }, [pdfJob, pdfJobs]);
 
-  async function loadPdfJobs() {
+  async function loadPdfJobs({ selectFirst = true } = {}) {
     try {
       const jobs = await getImportJobs();
       setPdfJobs(jobs);
-      if (!pdfJob && jobs.length) setPdfJob(jobs[0]);
+      if (selectFirst && !pdfJob && jobs.length) setPdfJob(jobs[0]);
     } catch (error) {
       setStatus(error.message);
     }
@@ -76,9 +77,36 @@ export default function Importar() {
     setPdfJob(null);
     try {
       const data = await importPdf(pdfFile);
+      const jobs = await getImportJobs();
+      setPdfJobs(jobs);
       setPdfJob(data);
-      await loadPdfJobs();
-      setStatus("Importação PDF iniciada.");
+      setStatus(data.status === "erro" ? "Não foi possível iniciar a importação PDF." : `Importação PDF iniciada: ${data.total} CNPJs encontrados.`);
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
+  async function handleViewJob(jobId) {
+    try {
+      setStatus("Carregando andamento da importação...");
+      const job = await getImportJob(jobId);
+      setPdfJob(job);
+      setStatus("");
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
+  async function handleClearFinishedJobs() {
+    try {
+      setStatus("Limpando importações concluídas...");
+      const result = await clearFinishedImportJobs();
+      const jobs = await getImportJobs();
+      setPdfJobs(jobs);
+      if (pdfJob?.id && !jobs.some((job) => job.id === pdfJob.id)) {
+        setPdfJob(jobs[0] || null);
+      }
+      setStatus(`${result.removidas} importações concluídas removidas.`);
     } catch (error) {
       setStatus(error.message);
     }
@@ -144,7 +172,10 @@ export default function Importar() {
 
       {!!pdfJobs.length && (
         <div className="panel">
-          <h2>Importações de PDF</h2>
+          <div className="compact-row">
+            <h2>Importações de PDF</h2>
+            <button type="button" onClick={handleClearFinishedJobs} disabled={!hasFinishedJobs}>Limpar importações concluídas</button>
+          </div>
           <div className="table-wrap import-errors">
             <table>
               <thead>
@@ -169,7 +200,7 @@ export default function Importar() {
                     <td>{job.enriquecidos}</td>
                     <td>{job.erros?.length || 0}</td>
                     <td>
-                      <button type="button" onClick={() => setPdfJob(job)}>Ver andamento</button>
+                      <button type="button" onClick={() => handleViewJob(job.id)}>Ver andamento</button>
                     </td>
                   </tr>
                 ))}
@@ -202,8 +233,8 @@ function ResultPanel({ title, metrics, errors }) {
             </thead>
             <tbody>
               {errors.map((error, index) => (
-                <tr key={`${error.linha || error.cnpj || "erro"}-${index}`}>
-                  <td>{error.linha || error.cnpj || "-"}</td>
+                <tr key={`${error.linha || error.cnpj || error.item || "erro"}-${index}`}>
+                  <td>{error.linha || error.cnpj || error.item || "-"}</td>
                   <td>{error.erro}</td>
                 </tr>
               ))}

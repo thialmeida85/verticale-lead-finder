@@ -21,7 +21,7 @@ from .lead_service import (
     save_lead,
     update_lead,
 )
-from .pdf_import_service import create_pdf_import_job, get_import_job, list_import_jobs, process_pdf_import_job
+from .pdf_import_service import clear_finished_import_jobs, create_pdf_import_job, get_import_job, list_import_jobs, process_pdf_import_job
 
 
 settings = get_settings()
@@ -91,8 +91,15 @@ async def api_import_pdf(background_tasks: BackgroundTasks, file: UploadFile = F
         raise HTTPException(status_code=400, detail="Envie um arquivo PDF.")
     content = await file.read()
     job, cnpjs = create_pdf_import_job(db, content, file.filename)
-    background_tasks.add_task(process_pdf_import_job, job.id, cnpjs)
+    if cnpjs:
+        background_tasks.add_task(process_pdf_import_job, job.id, cnpjs)
     return job
+
+
+@app.delete("/api/importar/jobs/concluidas")
+def api_clear_finished_import_jobs(db: Session = Depends(get_db)):
+    deleted = clear_finished_import_jobs(db)
+    return {"removidas": deleted}
 
 
 @app.get("/api/importar/jobs/{job_id}", response_model=schemas.ImportJobRead)

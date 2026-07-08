@@ -5,6 +5,8 @@ os.environ.setdefault("DATABASE_URL", "postgresql://user:password@localhost/dbna
 
 from app.cnpj_api import CANONICAL_COMPANY_FIELDS, canonical_company
 from app.lead_service import calculate_score, normalize_lead_payload
+from app.pdf_import_service import CNPJ_PATTERN
+from app.utils import is_valid_cnpj, normalize_mobile_for_export
 
 
 def main():
@@ -34,6 +36,14 @@ def main():
     assert lead["tem_telefone"] is True
     assert lead["tem_email"] is True
     assert calculate_score(lead) == 100
+    assert normalize_mobile_for_export("551239999999") == "5512939999999"
+    assert normalize_mobile_for_export("5512939999999") == "5512939999999"
+    assert normalize_mobile_for_export("(12) 3999-9999") == "5512939999999"
+    assert normalize_mobile_for_export("(12) 93999-9999") == "5512939999999"
+    assert is_valid_cnpj("57.111.565/0001-63") is True
+    assert is_valid_cnpj("84.584.416/0004-37") is True
+    assert is_valid_cnpj("00.000.000/0001-00") is False
+    assert CNPJ_PATTERN.search("57 . 111 . 565 / 0001 - 63")
 
     print("Backend smoke test OK: contrato CNPJ, normalização e score funcionando.")
 

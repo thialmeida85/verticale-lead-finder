@@ -17,14 +17,13 @@ def is_valid_cnpj(value: str | None) -> bool:
     if len(digits) != 14 or digits == digits[0] * 14:
         return False
 
-    def check_digit(numbers: str) -> str:
-        weights = range(len(numbers) + 1, 1, -1)
+    def check_digit(numbers: str, weights: list[int]) -> str:
         total = sum(int(number) * weight for number, weight in zip(numbers, weights))
         rest = total % 11
         return "0" if rest < 2 else str(11 - rest)
 
-    first = check_digit(digits[:12])
-    second = check_digit(digits[:12] + first)
+    first = check_digit(digits[:12], [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+    second = check_digit(digits[:12] + first, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
     return digits[-2:] == first + second
 
 
@@ -36,6 +35,17 @@ def normalize_phone(value: str | None) -> str | None:
         return f"55{digits}"
     if len(digits) in {12, 13} and digits.startswith("55"):
         return digits
+    return digits
+
+
+def normalize_mobile_for_export(value: str | None) -> str | None:
+    digits = normalize_phone(value)
+    if not digits:
+        return None
+    if len(digits) == 12 and digits.startswith("55"):
+        return f"{digits[:4]}9{digits[4:]}"
+    if len(digits) == 10:
+        return f"55{digits[:2]}9{digits[2:]}"
     return digits
 
 
