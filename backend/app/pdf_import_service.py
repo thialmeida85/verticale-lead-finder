@@ -1,6 +1,7 @@
 import asyncio
 import io
 import re
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from pypdf import PdfReader
@@ -17,6 +18,7 @@ from .utils import is_valid_cnpj, only_digits
 
 CNPJ_PATTERN = re.compile(r"(?<!\d)(?:\d[\s./-]*){14}(?!\d)")
 FINISHED_STATUSES = {"concluido", "pausado_limite_api", "erro"}
+STALE_PROCESSING_AFTER = timedelta(hours=12)
 
 
 def create_pdf_import_job(db: Session, content: bytes, filename: str | None = None) -> tuple[models.ImportJob, list[str]]:
@@ -45,10 +47,12 @@ def create_pdf_import_job(db: Session, content: bytes, filename: str | None = No
 
 
 def get_import_job(db: Session, job_id: UUID) -> models.ImportJob | None:
+    _mark_stale_import_jobs(db)
     return db.get(models.ImportJob, job_id)
 
 
 def list_import_jobs(db: Session, limit: int = 10) -> list[models.ImportJob]:
+    _mark_stale_import_jobs(db)
     stmt = (
         select(models.ImportJob)
         .where(models.ImportJob.tipo == "pdf")
@@ -67,6 +71,25 @@ def clear_finished_import_jobs(db: Session) -> int:
     )
     db.commit()
     return result.rowcount or 0
+
+
+def _mark_stale_import_jobs(db: Session):
+    cutoff = datetime.now(timezone.utc) - STALE_PROCESSING_AFTER
+    jobs = list(
+        db.scalars(
+            select(models.ImportJob).where(
+                models.ImportJob.tipo == "pdf",
+                models.ImportJob.status == "processando",
+                models.ImportJob.updated_at < cutoff,
+            )
+        )
+    )
+    if not jobs:
+        return
+    for job in jobs:
+        job.status = "erro"
+        _append_job_error(job, "PDF", "Importação interrompida antes de concluir. Inicie a importação novamente.")
+    db.commit()
 
 
 async def process_pdf_import_job(job_id: UUID, cnpjs: list[str]):
